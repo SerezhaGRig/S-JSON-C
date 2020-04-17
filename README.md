@@ -6,9 +6,9 @@ C/C++ Lightweight and simple json parser.
 How to use:
   struct json js;//Create js.
 
-  fromJson("{'name1':val1,'name2':val2,'name3':[1,2]}", &js);
+  fromJson("{'name1':'val1','name2':'val2','name3':'1,2]}", &js);
   /*Parse js if error it will return -1.
-  To resize allocated array size use fromJson_resize("{'name':val}", &js, your (name,val)pair arr size);.*/
+  To resize allocated array size use fromJson_resize("{'name':'val'}", &js, your (name,val)pair arr size);.*/
 
 
   //Use js.
