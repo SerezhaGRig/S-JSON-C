@@ -26,3 +26,5 @@ How to use:
 
   free_js(&js);//free allocated mamory
   free_arr(ints)//free allocated mamory
+  
+  struct json { char** names; char** values; int size; };
