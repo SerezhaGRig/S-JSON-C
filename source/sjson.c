@@ -23,10 +23,10 @@ int parse_pair(char* from, int size, char** name, char** val)
 {
 	char* start = from;
 	int lenght = 0;
-	for (from += 2; *from != '\'' && *from; lenght++, from++)
+	for (from += 2; *from != '\"' && *from; lenght++, from++)
 		;
-	if (!(*from) || start[1] != '\'' || from[1] != ':')
-		return 1;
+	if (!(*from) || start[1] != '\"' || from[1] != ':')
+		return -1;
 	from += 2;
 	lenght++;
 	(*name) = malloc(lenght * sizeof(char));
@@ -35,12 +35,12 @@ int parse_pair(char* from, int size, char** name, char** val)
 		(*name)[lenght - 1] = '\0';
 	}
 	size = size - (int)(from - start) - 1;
-	if ((from[size] != '\'' || *(from) != '\'') && (*from != '{' || from[size] != '}')
+	if ((from[size] != '\"' || *(from) != '\"') && (*from != '{' || from[size] != '}')
 		&& (*from != '[' || from[size] != ']') && (!isdigit(*from) || !isdigit(from[size])) && (strncmp("True", from, size + 1) || size + 1 != 4) && (strncmp("False", from, size + 1) || size + 1 != 5)) {
 		free(*name);
-		return 1;
+		return -1;
 	}
-	if (*from == '\'')
+	if (*from == '\"')
 	{
 		(*val) = malloc(size * sizeof(char));
 		if (*val) {
@@ -91,7 +91,7 @@ int fromJson_resize(char* from, struct json* js, int alloc_resize)
 		if (quot_closed) {
 			if ((*from == '{' || *from == '['))
 				open_brecks++;
-			if (*from == '\'')
+			if (*from == '\"')
 			{
 
 				quot_closed = false;
@@ -106,7 +106,7 @@ int fromJson_resize(char* from, struct json* js, int alloc_resize)
 					if (parse_pair(start, size, &(js->names[count]), &(js->values[count]))) {
 						free_cstr_arr(js->names, count);
 						free_cstr_arr(js->values, count);
-						return 1;
+						return -1;
 					}
 				}
 				count++;
@@ -116,7 +116,7 @@ int fromJson_resize(char* from, struct json* js, int alloc_resize)
 				open_brecks--;
 		}
 		else {
-			if (*(from) == '\'')
+			if (*(from) == '\"')
 			{
 				if (*(from - 1) != '\\' || (*(from - 1) == '\\' && *(from - 2) == '\\')) {
 					quot_closed = true;
@@ -130,7 +130,7 @@ int fromJson_resize(char* from, struct json* js, int alloc_resize)
 		return 0;
 	free(js->names);
 	free(js->values);
-	return 1;
+	return -1;
 }
 
 
@@ -253,7 +253,7 @@ char** csarr_from_cstr(char* from, int alloc_size, int* realsize)
 			return NULL;
 		}
 		from++;
-		if (*from != '\'')
+		if (*from != '\"')
 		{
 			free_cstr_arr(carr, i);
 			return NULL;
@@ -264,7 +264,7 @@ char** csarr_from_cstr(char* from, int alloc_size, int* realsize)
 			if (quot_closed) {
 				if ((*from == ']' || *from == ','))
 					break;
-				if (*(from) == '\'')
+				if (*(from) == '\"')
 				{
 
 					quot_closed = false;
@@ -272,7 +272,7 @@ char** csarr_from_cstr(char* from, int alloc_size, int* realsize)
 				}
 			}
 			else {
-				if (*(from) == '\'')
+				if (*(from) == '\"')
 				{
 
 					if (*(from - 1) != '\\' || (*(from - 1) == '\\' && *(from - 2) == '\\')) {
@@ -337,7 +337,7 @@ char** multiarr_from_cstr(char* from, int alloc_size, int* realsize)
 					breck_count++;
 				}
 
-				if (*(from) == '\'')
+				if (*(from) == '\"')
 				{
 
 					quot_closed = false;
@@ -348,7 +348,7 @@ char** multiarr_from_cstr(char* from, int alloc_size, int* realsize)
 					breck_count--;
 			}
 			else {
-				if (*(from) == '\'')
+				if (*(from) == '\"')
 				{
 
 					if (*(from - 1) != '\\' || (*(from - 1) == '\\' && *(from - 2) == '\\')) {
@@ -361,14 +361,14 @@ char** multiarr_from_cstr(char* from, int alloc_size, int* realsize)
 				}
 			}
 		}
-		if (!((*start == '\'' && *(from - 1) == '\'') || (*start == '{' && *(from - 1) == '}')
+		if (!((*start == '\"' && *(from - 1) == '\"') || (*start == '{' && *(from - 1) == '}')
 			|| (*start == '[' && *(from - 1) == ']') || (isdigit(*start) && isdigit(*(from - 1))) || (!strncmp(start, "True", from - start) && from - start == 4) || (!strncmp(start, "False", from - start) && from - start == 4)))
 		{
 			free_cstr_arr(carr, i);
 			return NULL;
 		}
 
-		if (*start == '\'') {
+		if (*start == '\"') {
 			start++;
 			lenght -= 2;
 		}
@@ -460,7 +460,7 @@ char* forJson_strf(char* from, char* to)
 {
 	for (; *to = *from; to++, from++)
 	{
-		if (from[1] == '}' || from[1] == '{' || from[1] == '[' || from[1] == ']' || from[1] == '\'' || from[1] == '\\') {
+		if (from[1] == '}' || from[1] == '{' || from[1] == '[' || from[1] == ']' || from[1] == '\"' || from[1] == '\\') {
 			*(++to) = '\\';
 
 
@@ -479,7 +479,7 @@ char* fromJson_strf(char* from, char* to)
 	for (; *to = *from; to++, from++)
 	{
 		if (*from == '\\') {
-			if (from[1] == '{' || from[1] == '}' || from[1] == '[' || from[1] == ']' || from[1] == '\'' || from[1] == '\\') {
+			if (from[1] == '{' || from[1] == '}' || from[1] == '[' || from[1] == ']' || from[1] == '\"' || from[1] == '\\') {
 				from++;
 				*to = *from;
 			}
@@ -531,11 +531,11 @@ int corrector(char* from, char* to)
 			if (*from == ' ' || *from == '\n') {
 				continue;
 			}
-			if (*from == '\'')
+			if (*from == '\"')
 				quot_closed = false;
 		}
 		else {
-			if (*from == '\'')
+			if (*from == '\"')
 				if (from > start + 1) {
 					if (*(from - 1) != '\\' || (*(from - 1) == '\\' && *(from - 2) == '\\')) {
 						quot_closed = true;
