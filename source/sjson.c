@@ -15,7 +15,7 @@
 
 
 int parse_pair(char* from, int size, char** name, char** val);
-
+char* corrector(char* from, char* to);
 
 
 //ok
@@ -36,7 +36,7 @@ int parse_pair(char* from, int size, char** name, char** val)
 	}
 	size = size - (int)(from - start) - 1;
 	if ((from[size] != '\"' || *(from) != '\"') && (*from != '{' || from[size] != '}')
-		&& (*from != '[' || from[size] != ']') && (!isdigit(*from) || !isdigit(from[size])) && (strncmp("True", from, size + 1) || size + 1 != 4) && (strncmp("False", from, size + 1) || size + 1 != 5)) {
+		&& (*from != '[' || from[size] != ']') && (!isdigit(*from) || !isdigit(from[size])) && (strncmp("true", from, size + 1) || size + 1 != 4) && (strncmp("false", from, size + 1) || size + 1 != 5)) {
 		free(*name);
 		return -1;
 	}
@@ -65,43 +65,41 @@ int parse_pair(char* from, int size, char** name, char** val)
 
 
 
-//ok
-int fromJson(char* from, struct json* js)
-{
-	return fromJson_resize(from, js, OBJ_COUNT_DEF);
-}
-
-
 
 
 //ok
-int fromJson_resize(char* from, struct json* js, int alloc_resize)
+int fromJson(char* dirty, Json* js)
 {
-	if (from == NULL)
-		return NULL;
-	js->names = malloc(alloc_resize * sizeof(char*));
-	js->values = malloc(alloc_resize * sizeof(char*));
+	if (dirty == NULL)
+			return 0;
+	char clear[strlen(dirty)+1];
+	corrector(dirty, clear);
+	js->names = NULL;//malloc(alloc_resize * sizeof(char*));
+	js->values = NULL;//malloc(alloc_resize * sizeof(char*));
 	int	count;
 	int open_brecks = 0;
-
 	int quot_closed = true;
+	char* from = clear;
 	char* start = from++;
 	for (count = 0; *(from); from++)
 	{
 		if (quot_closed) {
 			if ((*from == '{' || *from == '['))
 				open_brecks++;
-			if (*from == '\"')
+ 			if (*from == '\"')
 			{
 
 				quot_closed = false;
-				from++;
+				if(*(from+1)!='\"')
+					from++;
 				continue;
 
 			}
 			if ((*from == ',' || *from == '}') && !open_brecks)
 			{
 				int size = from - start;
+				js->names = realloc(js->names,(count+1) * sizeof(char*));
+				js->values = realloc(js->values,(count+1) * sizeof(char*));
 				if (js->names && js->values) {
 					if (parse_pair(start, size, &(js->names[count]), &(js->values[count]))) {
 						free_cstr_arr(js->names, count);
@@ -149,7 +147,7 @@ int find_in_arr(char** arr, int size, char* string)
 
 
 //ok
-int ex_in_js(struct json* js, char* name, char* val)
+int ex_in_js(Json* js, char* name, char* val)
 {
 	return strcmp(js->values[find_in_arr(js->names, js->size, name)], val);
 }
@@ -157,7 +155,7 @@ int ex_in_js(struct json* js, char* name, char* val)
 
 
 //ok
-char* get_value(struct json* js, char* name)
+char* get_value(Json* js, char* name)
 {
 	int i = find_in_arr(js->names, js->size, name);
 	if (i != -1)
@@ -168,7 +166,7 @@ char* get_value(struct json* js, char* name)
 
 
 //ok
-int free_js(struct json* js)
+int free_js(Json* js)
 {
 	int i;
 	for (i = 0; i < js->size; i++)
@@ -190,7 +188,7 @@ int* iarr_from_cstr(char* from, int alloc_size, int* realsize)
 	if (from == NULL)
 		return NULL;
 	int* int_arr = malloc((alloc_size) * sizeof(int));
-	int a, i, entered;
+	int a, i;
 	int sign = 1;
 	for (i = 0; *(from++) != ']'; i++) {
 		if (!isdigit(*from) && *from != '-' && *from)
@@ -208,11 +206,10 @@ int* iarr_from_cstr(char* from, int alloc_size, int* realsize)
 			return NULL;
 		}
 		for (a = 0; isdigit(*from); from++) {
-			entered = true;
 			a = a * 10 + (*from) - '0';
 
 		}
-		if (*from != ',' && from != ']')
+		if (*from != ',' && *from != ']')
 		{
 			free(int_arr);
 			return NULL;
@@ -242,9 +239,7 @@ char** csarr_from_cstr(char* from, int alloc_size, int* realsize)
 
 	int i;
 	int quot_closed = true;
-	int breck_count = 0;
 	int lenght = 0;
-	int error;
 
 	for (i = 0; *from != ']'; from++, i++, lenght = 0) {
 		if (*from != ',' && *from != '[')
@@ -308,11 +303,11 @@ char** csarr_from_cstr(char* from, int alloc_size, int* realsize)
 
 
 //ok
-char** multiarr_from_cstr(char* from, int alloc_size, int* realsize)
+char** jsarr_from_cstr(char* from, int* realsize)
 {
 	if (from == NULL)
 		return NULL;
-	char** carr = malloc(alloc_size * sizeof(char*));
+	char** carr=NULL; //= malloc(alloc_size * sizeof(char*));
 	char* start;
 	int breck_count = 0, lenght, quot_closed = true, i = 0;
 
@@ -362,7 +357,7 @@ char** multiarr_from_cstr(char* from, int alloc_size, int* realsize)
 			}
 		}
 		if (!((*start == '\"' && *(from - 1) == '\"') || (*start == '{' && *(from - 1) == '}')
-			|| (*start == '[' && *(from - 1) == ']') || (isdigit(*start) && isdigit(*(from - 1))) || (!strncmp(start, "True", from - start) && from - start == 4) || (!strncmp(start, "False", from - start) && from - start == 4)))
+			|| (*start == '[' && *(from - 1) == ']') || (isdigit(*start) && isdigit(*(from - 1))) || (!strncmp(start, "true", from - start) && from - start == 4) || (!strncmp(start, "false", from - start) && from - start == 4)))
 		{
 			free_cstr_arr(carr, i);
 			return NULL;
@@ -372,10 +367,8 @@ char** multiarr_from_cstr(char* from, int alloc_size, int* realsize)
 			start++;
 			lenght -= 2;
 		}
-
-		if (carr) {
-
-			i = i % alloc_size;
+		carr = realloc(carr,(i+1)*sizeof(char*));
+		if(carr){
 			carr[i] = malloc((lenght + 1) * sizeof(char));
 			if (carr[i]) {
 				strncpy(carr[i], start, lenght);
@@ -392,6 +385,9 @@ char** multiarr_from_cstr(char* from, int alloc_size, int* realsize)
 	free_cstr_arr(carr, i);
 	return NULL;
 }
+
+
+
 
 
 
@@ -458,7 +454,7 @@ double* farr_from_cstr(char* from, int alloc_size, int* realsize)
 //ok
 char* forJson_strf(char* from, char* to)
 {
-	for (; *to = *from; to++, from++)
+	for (; (*to = *from)!=0; to++, from++)
 	{
 		if (from[1] == '}' || from[1] == '{' || from[1] == '[' || from[1] == ']' || from[1] == '\"' || from[1] == '\\') {
 			*(++to) = '\\';
@@ -476,7 +472,7 @@ char* forJson_strf(char* from, char* to)
 //ok
 char* fromJson_strf(char* from, char* to)
 {
-	for (; *to = *from; to++, from++)
+	for (; (*to = *from)!=0; to++, from++)
 	{
 		if (*from == '\\') {
 			if (from[1] == '{' || from[1] == '}' || from[1] == '[' || from[1] == ']' || from[1] == '\"' || from[1] == '\\') {
@@ -521,7 +517,7 @@ int boolcmp(int val, int boolean) {
 	}
 	return val != 0;
 }*/
-int corrector(char* from, char* to)
+char* corrector(char* from, char* to)
 {
 	int quot_closed = true;
 	char* start = from;
@@ -535,17 +531,19 @@ int corrector(char* from, char* to)
 				quot_closed = false;
 		}
 		else {
-			if (*from == '\"')
+			if (*from == '\"'){
 				if (from > start + 1) {
 					if (*(from - 1) != '\\' || (*(from - 1) == '\\' && *(from - 2) == '\\')) {
 						quot_closed = true;
 					}
 				}
 				else quot_closed = false;
+			}
 		}
 
 		*to = *from;
 		to++;
 	}
 	*to = '\0';
+	return to;
 }
