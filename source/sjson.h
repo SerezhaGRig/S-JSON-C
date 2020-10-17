@@ -3,12 +3,12 @@
  */
 #ifndef SJSON_H
 #define SJSON_H
-typedef struct{
+typedef struct {
 	char* name;
 	char* value;
 }JsonPair;
-typedef struct{
-	JsonPair *pairs;
+typedef struct {
+	JsonPair* pairs;
 	int size;
 }Json;
 typedef struct
@@ -28,12 +28,12 @@ int* iarr_from_cstr(char* from, int alloc_size, int* realsize);
 double* farr_from_cstr(char* from, int alloc_size, int* realsize);
 //Object Methods
 char* get_value(Json* js, char* name);
-int ex_in_js(Json* js, char* name, char* val);
-char* get_element(JsArr* arr,int i);
+int cmp_in_js(Json* js, char* name, char* val);
+char* get_element(JsArr* arr, int i);
 int find_in_jsarr(JsArr* arr, char* string);
 char* forJson_strf(char* from, char* to);
 char* fromJson_strf(char* from, char* to);
-int find_in_js(Json* js,char* string);
+int find_in_js(Json* js, char* string);
 //Memory free Methods
 int free_js(Json* js);
 int free_jsarr(JsArr* arr);

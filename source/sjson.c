@@ -27,12 +27,14 @@ char* corrector(char* from, char* to);
 Json* from_json(char* dirty)
 {
 	if (dirty == NULL)
-			return 0;
-	char clear[strlen(dirty)+1];
+		return 0;
+	char* clear = malloc(strlen(dirty) + 1);
 	corrector(dirty, clear);
 	Json* js = malloc(sizeof(Json));
-	js->pairs=NULL;
-	js->size=0;
+	if (js == NULL)
+		return NULL;
+	js->pairs = NULL;
+	js->size = 0;
 	int	count;
 	int open_brecks = 0;
 	int quot_closed = true;
@@ -43,11 +45,11 @@ Json* from_json(char* dirty)
 		if (quot_closed) {
 			if ((*from == '{' || *from == '['))
 				open_brecks++;
- 			if (*from == '\"')
+			if (*from == '\"')
 			{
 
 				quot_closed = false;
-				if(*(from+1)!='\"')
+				if (*(from + 1) != '\"')
 					from++;
 				continue;
 
@@ -55,11 +57,21 @@ Json* from_json(char* dirty)
 			if ((*from == ',' || *from == '}') && !open_brecks)
 			{
 				int size = from - start;
-				js->pairs = realloc(js->pairs,(count+1) * sizeof(JsonPair));
+				JsonPair* tmp = realloc(js->pairs, (count + 1) * sizeof(JsonPair));
+				if (tmp != NULL)
+					js->pairs = tmp;
+				else {
+					free(js->pairs);
+					free_js(js);
+					free(clear);
+					return NULL;
+				}
+
 				if (js) {
 					if (parse_pair(start, size, &(js->pairs[count]))) {
-						js->size=count;
+						js->size = count;
 						free_js(js);
+						free(clear);
 						return NULL;
 					}
 				}
@@ -80,8 +92,10 @@ Json* from_json(char* dirty)
 
 	}
 	js->size = count;
-	if (count && *(from - 1) == '}' && open_brecks == -1 && quot_closed)
+	if (count && *(from - 1) == '}' && open_brecks == -1 && quot_closed) {
+		free(clear);
 		return js;
+	}
 	free_js(js);
 	return NULL;
 }
@@ -92,9 +106,9 @@ JsArr* from_jsarr(char* from)
 {
 	if (from == NULL)
 		return NULL;
-	JsArr* jsarr=malloc(sizeof(JsArr)); //= malloc(alloc_size * sizeof(char*));
-	jsarr->elems=NULL;
-	jsarr->size=0;
+	JsArr* jsarr = malloc(sizeof(JsArr)); //= malloc(alloc_size * sizeof(char*));
+	jsarr->elems = NULL;
+	jsarr->size = 0;
 	char* start;
 	int breck_count = 0, lenght, quot_closed = true, i = 0;
 
@@ -143,7 +157,18 @@ JsArr* from_jsarr(char* from)
 				}
 			}
 		}
-	jsarr->elems = realloc(jsarr->elems,(i+1)*sizeof(Element));
+		Element* tmp = realloc(jsarr->elems, (i + 1) * sizeof(Element));
+		if (tmp == NULL) {
+			free_jsarr(jsarr);
+			free(jsarr->elems);
+
+			return NULL;
+		}
+		else
+		{
+			jsarr->elems = tmp;
+		}
+
 		if (!((*start == '\"' && *(from - 1) == '\"') || (*start == '{' && *(from - 1) == '}')
 			|| (*start == '[' && *(from - 1) == ']') || (isdigit(*start) && isdigit(*(from - 1))) || (!strncmp(start, "true", from - start) && from - start == 4) || (!strncmp(start, "false", from - start) && from - start == 4)))
 		{
@@ -151,7 +176,7 @@ JsArr* from_jsarr(char* from)
 			return NULL;
 		}
 
-		if(jsarr){
+		if (jsarr) {
 			jsarr->elems[i].value = malloc((lenght + 1) * sizeof(char));
 			if (jsarr->elems[i].value) {
 				strncpy(jsarr->elems[i].value, start, lenght);
@@ -239,7 +264,7 @@ char** csarr_from_cstr(char* from, int alloc_size, int* realsize)
 
 	}
 	if (realsize != NULL)
-		* realsize = i;
+		*realsize = i;
 	return carr;
 }
 
@@ -284,7 +309,7 @@ int* iarr_from_cstr(char* from, int alloc_size, int* realsize)
 
 	}
 	if (realsize != NULL)
-		* realsize = i;
+		*realsize = i;
 	return int_arr;
 }
 
@@ -323,7 +348,7 @@ double* farr_from_cstr(char* from, int alloc_size, int* realsize)
 				return NULL;
 			}
 			for (power = 1.0; isdigit(*from); from++) {
-				double a = ((double)* from - (double)'0');
+				double a = ((double)*from - (double)'0');
 				val = 10.0 * val + a;
 				power *= 10;
 			}
@@ -342,7 +367,7 @@ double* farr_from_cstr(char* from, int alloc_size, int* realsize)
 		}
 	}
 	if (realsize != NULL)
-		* realsize = i;
+		*realsize = i;
 	return double_arr;
 }
 
@@ -350,6 +375,8 @@ double* farr_from_cstr(char* from, int alloc_size, int* realsize)
 //ok
 int find_in_jsarr(JsArr* arr, char* string)
 {
+	if (arr == NULL)
+		return -1;
 	int i;
 	for (i = 0; i < arr->size; i++)
 		if (!strcmp(string, arr->elems[i].value))
@@ -358,8 +385,10 @@ int find_in_jsarr(JsArr* arr, char* string)
 }
 
 //ok
-int find_in_js(Json* js,char* string)
+int find_in_js(Json* js, char* string)
 {
+	if (js==NULL)
+		return -1;
 	int i;
 	for (i = 0; i < js->size; i++)
 		if (!strcmp(string, js->pairs[i].name))
@@ -369,9 +398,11 @@ int find_in_js(Json* js,char* string)
 
 
 //ok
-int ex_in_js(Json* js, char* name, char* val)
+int cmp_in_js(Json* js, char* name, char* val)
 {
-	return strcmp(js->pairs[find_in_js(js,name)].value, val);
+	if (js == NULL)
+		return -1;
+	return strcmp(js->pairs[find_in_js(js, name)].value, val);
 }
 
 
@@ -379,10 +410,12 @@ int ex_in_js(Json* js, char* name, char* val)
 //ok
 char* get_value(Json* js, char* name)
 {
-	int i = find_in_js(js,name);
+	if (js == NULL)
+		return NULL;
+	int i = find_in_js(js, name);
 	if (i != -1)
 		return js->pairs[i].value;
-	return 0;
+	return NULL;
 }
 
 
@@ -396,9 +429,9 @@ int boolcmp(int val, int boolean) {
 	return val != 0;
 }*/
 //ok
-char* get_element(JsArr* arr,int i)
+char* get_element(JsArr* arr, int i)
 {
-	if(i<arr->size)
+	if (i < arr->size)
 		return arr->elems[i].value;
 	return NULL;
 }
@@ -410,7 +443,7 @@ char* get_element(JsArr* arr,int i)
 //ok
 char* forJson_strf(char* from, char* to)
 {
-	for (; (*to = *from)!=0; to++, from++)
+	for (; (*to = *from) != 0; to++, from++)
 	{
 		if (from[1] == '}' || from[1] == '{' || from[1] == '[' || from[1] == ']' || from[1] == '\"' || from[1] == '\\') {
 			*(++to) = '\\';
@@ -428,7 +461,7 @@ char* forJson_strf(char* from, char* to)
 //ok
 char* fromJson_strf(char* from, char* to)
 {
-	for (; (*to = *from)!=0; to++, from++)
+	for (; (*to = *from) != 0; to++, from++)
 	{
 		if (*from == '\\') {
 			if (from[1] == '{' || from[1] == '}' || from[1] == '[' || from[1] == ']' || from[1] == '\"' || from[1] == '\\') {
@@ -445,14 +478,18 @@ char* fromJson_strf(char* from, char* to)
 //ok
 int free_js(Json* js)
 {
-	int i;
-	for (i = 0; i < js->size; i++)
-	{
-		free(js->pairs[i].name);
-		free(js->pairs[i].value);
+
+	if (js != NULL) {
+		for (int i = 0; i < js->size; i++)
+		{
+			if (js->pairs != NULL) {
+				free(js->pairs[i].name);
+				free(js->pairs[i].value);
+			}
+		}
+		free(js->pairs);
+		free(js);
 	}
-	free(js->pairs);
-	free(js);
 	return 0;
 }
 
@@ -464,12 +501,14 @@ int free_js(Json* js)
 int free_jsarr(JsArr* arr)
 {
 	int i;
-	for (i = 0; i < arr->size; i++)
-	{
-		free(arr->elems[i].value);
+	if (arr != NULL) {
+		for (i = 0; i < arr->size; i++)
+		{
+			free(arr->elems[i].value);
+		}
+		free(arr->elems);
+		free(arr);
 	}
-	free(arr->elems);
-	free(arr);
 	return 0;
 }
 //ok
@@ -510,7 +549,7 @@ char* corrector(char* from, char* to)
 				quot_closed = false;
 		}
 		else {
-			if (*from == '\"'){
+			if (*from == '\"') {
 				if (from > start + 1) {
 					if (*(from - 1) != '\\' || (*(from - 1) == '\\' && *(from - 2) == '\\')) {
 						quot_closed = true;
@@ -523,6 +562,8 @@ char* corrector(char* from, char* to)
 		*to = *from;
 		to++;
 	}
+	if (*(to - 1) == ';')
+		to--;
 	*to = '\0';
 	return to;
 }
