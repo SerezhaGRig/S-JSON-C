@@ -13,31 +13,41 @@ How to use:
 
   Json js;//Create js.
 
-  fromJson("{\"name1\":\"val1\",\"name2\":\"val2\",\"name3\":[1,2]}", &js);
-  /*Parse js if error it will return -1.*/
+  Json* js=fromJson("{\"name1\":\"val1\",\"name2\":\"val2\",\"name3\":[1,2]}");
+  /*Parse json file if error it will return null elso Json structure.*/
 
-  //Use js.
-  char* val1 = get_value(&js, "name1")//returns c_str (in this example "val1")
-  char* arr_str = get_value(&js, "name3")
+  //Use Json object.
+  char* val1 = get_value(js, "name1")//returns c_str (in this example "val1")
+  char* arr_str = get_value(js, "name3")
   
   /*If name doesnt exist in js it will return NULL else c_str func return("[1,2]" in this example)*/
-
+  /*js.size return size of json pairs*/ 
 
 
   char* arr_str="[{\"name1\":\"val1\"},\"some string\"]"
-  char** js_arr = jsarr_from_cstr(arr_str, &count);
-  /*Returned value js_arr was array which elements are strings from json-array 
-  for example arr_str[0]->"{\"name1\":\"val1\"}"  
-  */
+  JsArr* js_arr = from_jsarr(arr_str);
+  /*Returned value js_arr was JsArr structure which elements are strings from json-array 
+  to get elements for use  */
+  /*First arg is a sring which is array from json file,  
+  returns null if error.*/
+  //Use JsArr object.
+  char* elem1 = get_ellement(js_arr, 0);
+  char* elem2 = get_ellement(js_arr, 1);
+  char* elem3 = get_ellement(js_arr, 2);
 
-  /*First arg is a sring which is array,  
-  last arg returns cstring array count (2 in this example) function  returns null if error.*/
+  /*In this exemple get element returns 
+  elem1->"{\"name1\":\"val1\"}" 
+  elem2->"\"some string\""
+  elem3->NULL*/  
+  /*js_arr.size return size of array elments*/ 
+ 
 
-  //Use js.
 
 
-
-  free_js(&js);//free allocated mamory
-  free_arr(ints)//free allocated mamory
+  free_js(js);//free allocated mamory
+  free_jsarr(js_arr)//free allocated mamory
   
-  typedef struct{ char** names; char** values; int size; } Json;
+  typedef struct{JsonPair *pairs;int size;}Json;
+  typedef struct{JsonPair *pairs;int size;}Json;
+  typedef struct{Element* elems;int size;}JsArr;
+  typedef struct{char* value;}Element;
