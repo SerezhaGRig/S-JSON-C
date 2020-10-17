@@ -1,6 +1,8 @@
 /*
  Author: Serezha Grigoryan
  */
+#ifndef SJSON_H
+#define SJSON_H
 typedef struct{
 	char* name;
 	char* value;
@@ -37,4 +39,4 @@ int free_js(Json* js);
 int free_jsarr(JsArr* arr);
 int free_cstr_arr(char** arr, int size);
 int free_arr(void* arr);
-
+#endif SJSON_H
