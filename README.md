@@ -224,10 +224,6 @@ gcc -g -Wall -o test_program test.c sjson.o
 
 Contributions are welcome! Please feel free to submit pull requests or open issues for bugs and feature requests.
 
-## License
-
-[Add your license information here]
-
 ## Author
 
 Serezha Grigoryan
